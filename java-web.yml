@@ -1,0 +1,58 @@
+---
+- name: Install build server and build java app 
+  hosts: build
+  become: yes
+
+  tasks:
+    - name: Install jdk
+      apt:
+        name: default-jdk
+        state: present
+        update_cache: yes
+
+    - name: Install GIT
+      apt:
+        name: git
+        state: present
+
+    - name: Install maven
+      apt:
+        name: maven
+        state: present
+
+    - name: Clone project from github 
+      git:
+        repo: 'https://github.com/boxfuse/boxfuse-sample-java-war-hello.git'
+        dest: /home/GIT/boxfuse
+        clone: yes
+
+    - name: Build java app 
+      command: mvn -f /home/GIT/boxfuse/pom.xml clean package
+
+- name: Install web server and publish java app 
+  hosts: web
+  become: yes
+
+  tasks:
+    - name: Install JRE
+      apt:
+        name: default-jre
+        state: present
+        update_cache: yes
+
+    - name: Install tomcat9
+      apt:
+        name: tomcat9
+        state: present
+
+    - name: Start tomcat9
+      service:
+        name: tomcat9
+        state: started
+
+    - name: Copy java app from build server to web server by rsync
+      synchronize:
+        src: /home/GIT/boxfuse/target/hello-1.0.war
+        dest: /var/lib/tomcat9/webapps
+      delegate_to: 84.201.161.206
+---
